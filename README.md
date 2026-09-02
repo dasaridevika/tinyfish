@@ -11,17 +11,16 @@ A streamlined Streamlit application that uses **TinyFish** to search the web or 
 pip install -r requirements.txt
 ```
 
-### 2. Run the App
+### 2. Configure Secret
+Set your `TINYFISH_API_KEY` in:
+- **Streamlit Community Cloud Secrets** (for cloud deployment: `TINYFISH_API_KEY = "sk-tinyfish-..."`)
+- **Environment Variable** (for local run: `$env:TINYFISH_API_KEY="sk-tinyfish-..."` or local `.env` file)
+
+### 3. Run the App
 ```bash
 streamlit run app.py
 ```
 Open `http://localhost:8501` in your browser.
-
-### 3. Usage
-1. Enter your **Main Goal** (e.g. *Extract full roadmap, syllabus, and beginner guides*).
-2. Enter your **Keywords** (e.g. *Python, AI agents, LangChain*).
-3. *(Optional)* Provide a **Target URL** to deep-scan a specific webpage, or leave it blank to search the live web.
-4. Click **Find Results**.
 
 ---
 
@@ -29,9 +28,7 @@ Open `http://localhost:8501` in your browser.
 
 ```
 tinyfish-keyword-monitor/
-├── .env.example       # API Key configuration template
 ├── README.md          # Documentation
-├── requirements.txt   # Minimal dependencies
+├── requirements.txt   # Core dependencies
 └── app.py             # Single-file Streamlit application
 ```
-"# tinyfish" 
