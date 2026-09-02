@@ -290,8 +290,8 @@ if search_submitted:
                         <span class="domain-badge">{domain}</span>
                     </div>
                     <div class="card-snippet">{context}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem;">
-                        <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                             {''.join([f'<span class="kw-chip">#{k}</span>' for k in kw_list])}
                         </div>
                         <a href="{url}" target="_blank" class="link-button">Open Source &rarr;</a>
