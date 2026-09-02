@@ -226,9 +226,19 @@ if search_submitted:
                         }]
                     else:
                         st.write("Querying TinyFish live web search index...")
+                        # Build an intent-focused query combining Goal + Keywords
+                        intent_terms = goal_input.strip()
+                        kw_terms = " ".join(kw_list)
+                        
+                        # If goal mentions roadmap, syllabus, or guide, ensure it's explicitly in the search query
+                        if any(w in goal_input.lower() for w in ["roadmap", "path", "curriculum", "syllabus", "guide", "learn", "course"]):
+                            final_query = f"{kw_terms} {intent_terms}"
+                        else:
+                            final_query = f"{intent_terms}: {kw_terms}"
+
                         search_resp = client.search.query(
-                            query=" ".join(kw_list),
-                            purpose=goal_input
+                            query=final_query,
+                            purpose=f"Find accurate step-by-step roadmaps, guides, and learning paths for: {kw_terms}"
                         )
                         results_list = getattr(search_resp, "results", [])
                         summary = f"Found {len(results_list)} live web resources matching your goal."
