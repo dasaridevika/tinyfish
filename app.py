@@ -200,36 +200,35 @@ def get_domain(url_str: str) -> str:
     except Exception:
         return "web"
 
-# Resolve API Key from Streamlit Secrets or Environment
+# Resolve API Key from Streamlit Secrets or Environment (case-insensitive)
 api_key = ""
 try:
     if hasattr(st, "secrets"):
-        if "TINYFISH_API_KEY" in st.secrets:
-            api_key = str(st.secrets["TINYFISH_API_KEY"]).strip()
-        elif "tinyfish" in st.secrets and "api_key" in st.secrets["tinyfish"]:
-            api_key = str(st.secrets["tinyfish"]["api_key"]).strip()
+        # Check all possible case variations in Streamlit secrets
+        for k in ["TINYFISH_API_KEY", "tinyfish_api_key", "TINYFISH_KEY", "tinyfish_key", "API_KEY", "api_key"]:
+            if k in st.secrets:
+                api_key = str(st.secrets[k]).strip()
+                break
+        if not api_key and "tinyfish" in st.secrets:
+            api_key = str(st.secrets["tinyfish"].get("api_key", "")).strip()
 except Exception:
     pass
 
 if not api_key:
-    api_key = os.getenv("TINYFISH_API_KEY", "").strip()
+    for k in ["TINYFISH_API_KEY", "tinyfish_api_key", "TINYFISH_KEY", "API_KEY"]:
+        val = os.getenv(k)
+        if val:
+            api_key = val.strip()
+            break
 
 # Header Hero Section
 st.markdown("""
 <div class="hero-container">
     <div class="hero-badge">AI Web Intelligence & Monitor</div>
     <div class="hero-title">TinyFish Monitor</div>
-    <div class="hero-tagline">Real-time web monitoring and neural search powered by TinyFish AI Web Agents.</div>
+    <div class="hero-tagline">Real-time web monitoring and search powered by TinyFish AI Web Agents.</div>
 </div>
 """, unsafe_allow_html=True)
-
-# Optional fallback key entry if not found in secrets
-if not api_key:
-    with st.expander("🔑 Configure TinyFish API Key (Required for Live Web Results)", expanded=True):
-        st.info("No API key detected in Streamlit Secrets. Paste your TinyFish key below (from agent.tinyfish.ai) to enable 100% live web searches:")
-        user_key_input = st.text_input("TinyFish API Key", type="password", placeholder="sk-tinyfish-...")
-        if user_key_input.strip():
-            api_key = user_key_input.strip()
 
 # Load existing store
 store_data = load_store()
