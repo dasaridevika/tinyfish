@@ -12,12 +12,12 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="TinyFish AI Knowledge & Monitor",
+    page_title="TinyFish Monitor",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Persistence store for saved monitors
+# Persistence store for saved monitors and diff tracking
 DATA_FILE = "monitors_store.json"
 
 def load_store():
@@ -36,7 +36,7 @@ def save_store(data):
     except Exception:
         pass
 
-# Custom Styling
+# Exa-Style High-End Dark Banner & Card Styling
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -47,137 +47,107 @@ st.markdown("""
     
     /* Hero Banner */
     .hero-container {
-        background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #4338CA 100%);
+        background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #312E81 100%);
         padding: 2.2rem 2.5rem;
-        border-radius: 20px;
+        border-radius: 18px;
         margin-bottom: 1.8rem;
-        box-shadow: 0 12px 30px -8px rgba(49, 46, 129, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .hero-badge {
-        background: linear-gradient(90deg, #EC4899, #8B5CF6);
+        background: linear-gradient(90deg, #6366F1, #EC4899);
         color: #FFFFFF !important;
         padding: 5px 14px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         display: inline-block;
         margin-bottom: 0.6rem;
-        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
     }
     .hero-title {
-        font-size: 2.5rem;
+        font-size: 2.4rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         color: #FFFFFF !important;
-        margin-bottom: 0;
+        margin-bottom: 0.4rem;
         text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    
-    /* Answer Synthesis Box */
-    .insights-card {
-        background: #FFFFFF;
-        border: 1px solid #C7D2FE;
-        border-top: 5px solid #4F46E5;
-        border-radius: 16px;
-        padding: 1.8rem 2rem;
-        margin-bottom: 1.8rem;
-        box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.12);
-    }
-    .insights-title {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: #1E1B4B;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .insights-body {
-        font-size: 1.02rem;
-        line-height: 1.7;
-        color: #334155;
+    .hero-tagline {
+        font-size: 1.05rem;
+        color: #C7D2FE !important;
+        font-weight: 400;
     }
     
-    /* Result Card Styling */
-    .card-container {
+    /* Exa-Style Result Card */
+    .exa-card {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-left: 5px solid #6366F1;
-        border-radius: 14px;
-        padding: 1.4rem;
-        margin-bottom: 1.2rem;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+        border-radius: 12px;
+        padding: 1.4rem 1.6rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
-    .card-container:hover {
-        border-color: #818CF8;
-        border-left: 5px solid #4F46E5;
-        box-shadow: 0 12px 28px -4px rgba(79, 70, 229, 0.15);
-        transform: translateY(-3px);
+    .exa-card:hover {
+        border-color: #6366F1;
+        box-shadow: 0 10px 24px -4px rgba(99, 102, 241, 0.15);
+        transform: translateY(-2px);
     }
-    
-    .card-title {
-        font-size: 1.2rem;
+    .exa-title {
+        font-size: 1.18rem;
         font-weight: 700;
         color: #0F172A !important;
-        margin-bottom: 0.5rem;
         line-height: 1.4;
+        margin-bottom: 0.4rem;
     }
-    .card-snippet {
-        font-size: 0.98rem;
+    .exa-snippet {
+        font-size: 0.96rem;
         color: #334155 !important;
         line-height: 1.6;
-        margin-bottom: 1rem;
+        margin-bottom: 0.9rem;
     }
     
-    /* Colorful Badges & Pills */
-    .domain-badge {
-        background: #F0FDF4;
-        color: #15803D !important;
-        border: 1px solid #BBF7D0;
-        font-size: 0.8rem;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .badge-new {
-        background: linear-gradient(135deg, #10B981, #059669);
-        color: #FFFFFF !important;
-        font-size: 0.75rem;
-        font-weight: 800;
-        padding: 3px 9px;
-        border-radius: 6px;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
-    }
-    
-    .kw-chip {
+    /* Pills & Badges */
+    .cadence-badge {
         background: #EEF2FF;
         color: #4338CA !important;
         border: 1px solid #C7D2FE;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 8px;
-        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 6px;
     }
-    
+    .domain-badge {
+        background: #F1F5F9;
+        color: #475569 !important;
+        border: 1px solid #E2E8F0;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 6px;
+    }
     .date-badge {
         background: #FFFBEB;
         color: #B45309 !important;
         border: 1px solid #FDE68A;
         font-size: 0.78rem;
         font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 6px;
+    }
+    .badge-new {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: #FFFFFF !important;
+        font-size: 0.72rem;
+        font-weight: 800;
         padding: 3px 8px;
         border-radius: 6px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
     }
     
     .link-button {
@@ -186,17 +156,17 @@ st.markdown("""
         gap: 6px;
         background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
         color: #FFFFFF !important;
-        font-size: 0.88rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        padding: 8px 16px;
-        border-radius: 10px;
+        padding: 7px 15px;
+        border-radius: 8px;
         text-decoration: none;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
         transition: all 0.2s ease;
     }
     .link-button:hover {
         background: linear-gradient(135deg, #4338CA 0%, #4F46E5 100%);
-        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        box-shadow: 0 6px 14px rgba(79, 70, 229, 0.4);
         transform: translateY(-1px);
         color: #FFFFFF !important;
         text-decoration: none;
@@ -210,7 +180,7 @@ st.markdown("""
         border-radius: 10px !important;
         font-weight: 700 !important;
         font-size: 1rem !important;
-        padding: 0.6rem 1.5rem !important;
+        padding: 0.65rem 1.5rem !important;
         box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
         transition: all 0.2s ease !important;
     }
@@ -241,11 +211,12 @@ except Exception:
 if not api_key:
     api_key = os.getenv("TINYFISH_API_KEY", "").strip()
 
-# Header Hero Section
+# Header Hero Section (Exa-Style)
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-badge">AI Intelligence & Monitor</div>
-    <div class="hero-title">TinyFish Knowledge & Monitor</div>
+    <div class="hero-badge">Exa-Style AI Web Monitor</div>
+    <div class="hero-title">TinyFish Monitor</div>
+    <div class="hero-tagline">Track web topics, roadmaps, competitor news, and keyword changes on a recurring cadence.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -253,23 +224,22 @@ st.markdown("""
 store_data = load_store()
 
 # Collapsible Saved Monitors Dashboard
-with st.expander(f"📁 Manage Saved Monitors ({len(store_data.get('monitors', []))} active)", expanded=False):
+with st.expander(f"📁 Active Monitors ({len(store_data.get('monitors', []))})", expanded=False):
     saved_monitors = store_data.get("monitors", [])
     if not saved_monitors:
-        st.info("No saved monitors yet. Configure a query below and check 'Save as a Monitor'!")
+        st.info("No saved monitors yet. Configure a query below and check 'Save as Active Monitor' to start tracking!")
     else:
         for idx, mon in enumerate(saved_monitors):
-            c_name, c_query, c_dur, c_btn = st.columns([2, 3, 2, 2])
+            c_name, c_query, c_cad, c_btn = st.columns([2, 3, 2, 2])
             c_name.write(f"**{mon.get('name')}**")
-            c_query.caption(f"🔑 `{mon.get('query')}`")
-            c_dur.caption(f"⏱️ {mon.get('duration_label', 'All Time')}")
+            c_query.caption(f"🔍 `{mon.get('query')}`")
+            c_cad.markdown(f"<span class='cadence-badge'>⏱️ {mon.get('cadence_label')}</span>", unsafe_allow_html=True)
             
             c_del, c_run = c_btn.columns(2)
             if c_run.button("▶️ Run", key=f"run_mon_{idx}", use_container_width=True):
                 st.session_state["active_query"] = mon.get("query")
-                st.session_state["active_goal"] = mon.get("goal")
-                st.session_state["active_url"] = mon.get("url", "")
-                st.session_state["active_dur"] = mon.get("duration_minutes")
+                st.session_state["active_cadence"] = mon.get("cadence_preset")
+                st.session_state["active_num"] = mon.get("num_results", 10)
                 st.session_state["trigger_search"] = True
                 st.rerun()
                 
@@ -279,128 +249,119 @@ with st.expander(f"📁 Manage Saved Monitors ({len(store_data.get('monitors', [
                 save_store(store_data)
                 st.rerun()
 
-# Input Form
-with st.form("search_form", border=True):
-    st.subheader("Configure Search & Monitor")
+# Exa-Style Monitor Configuration Form
+with st.form("exa_monitor_form", border=True):
+    st.subheader("Create or Preview Monitor")
     
-    goal_input = st.text_area(
-        "Main Goal / Purpose",
-        value=st.session_state.get("active_goal", ""),
-        placeholder="e.g. Find official documentation, roadmaps, pricing models, or technical comparisons",
-        height=85,
-        help="What outcome or specific information do you want the AI to extract?"
+    query_input = st.text_input(
+        "Search Query (q)",
+        value=st.session_state.get("active_query", ""),
+        placeholder="e.g. Latest news on Nvidia, Python developer roadmap 2026, AI agent frameworks",
+        help="The search query or keyword phrase to monitor."
     )
     
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
-        query_input = st.text_input(
-            "Keywords / Target Query",
-            value=st.session_state.get("active_query", ""),
-            placeholder="e.g. Python, AI agents, LangChain, AWS pricing, React.js",
-            help="Keywords or topics to search."
+        cadence_options = [
+            ("Daily (1d)", "1d", 1440),
+            ("Weekly (1w)", "1w", 10080),
+            ("Hourly (1h)", "1h", 60),
+            ("Monthly (1m)", "1m", 43200),
+            ("All Time (Instant)", "none", None)
+        ]
+        cadence_choice = st.selectbox(
+            "Cadence Preset (cadencePreset)",
+            cadence_options,
+            format_func=lambda x: x[0],
+            help="How frequently this query should be monitored and what freshness window to apply."
         )
+        cadence_label, cadence_key, recency_mins = cadence_choice
+        
     with col2:
+        num_results = st.selectbox(
+            "Number of Results (numResults)",
+            [5, 10, 15, 20],
+            index=1,
+            help="Maximum number of relevant results to retrieve."
+        )
+        
+    with col3:
         url_input = st.text_input(
             "Target URL (Optional)",
-            value=st.session_state.get("active_url", ""),
             placeholder="e.g. https://roadmap.sh/python (Leave blank for web search)",
-            help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this specific URL."
+            help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this URL."
         )
-    
-    col3, col4 = st.columns([1, 1])
-    with col3:
-        duration_options = [
-            ("Any Time (All History)", None),
-            ("Past 24 Hours", 1440),
-            ("Past 7 Days", 10080),
-            ("Past 30 Days", 43200),
-            ("Past 1 Hour", 60)
-        ]
-        duration_option = st.selectbox(
-            "⏱️ Time Duration / Freshness",
-            duration_options,
-            format_func=lambda x: x[0]
-        )
-        recency_minutes_val = duration_option[1]
         
-    with col4:
-        # Save as Monitor option
-        col_save1, col_save2 = st.columns([1, 2])
-        save_as_monitor = col_save1.checkbox("💾 Save as Monitor", value=False)
-        monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. AI Tech Watcher", label_visibility="collapsed") if save_as_monitor else ""
+    # Save as Monitor option
+    col_save1, col_save2 = st.columns([1, 2])
+    save_as_monitor = col_save1.checkbox("💾 Save as Active Monitor", value=False)
+    monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. Nvidia News Monitor", label_visibility="collapsed") if save_as_monitor else ""
 
-    search_submitted = st.form_submit_button("🚀 Find & Synthesize Results", type="primary", use_container_width=True)
+    run_submitted = st.form_submit_button("🚀 Run Monitor Preview", type="primary", use_container_width=True)
 
-# Check if triggered via form or saved monitor button
+# Check if triggered via saved monitor button
 if st.session_state.get("trigger_search", False):
-    search_submitted = True
+    run_submitted = True
     st.session_state["trigger_search"] = False
 
-# Process Search
-if search_submitted:
-    if not goal_input.strip() or not query_input.strip():
-        st.warning("Please enter both your **Main Goal** and **Keywords / Query**.")
+# Process Monitor Run
+if run_submitted:
+    if not query_input.strip():
+        st.warning("Please enter a **Search Query** to run the monitor.")
     else:
-        kw_list = [k.strip() for k in query_input.split(",") if k.strip()]
-        
         # Save monitor if selected
         if save_as_monitor and monitor_name.strip():
             existing_names = [m.get("name") for m in store_data.get("monitors", [])]
             if monitor_name.strip() not in existing_names:
                 store_data["monitors"].append({
                     "name": monitor_name.strip(),
-                    "goal": goal_input.strip(),
                     "query": query_input.strip(),
+                    "cadence_preset": cadence_key,
+                    "cadence_label": cadence_label,
+                    "duration_minutes": recency_mins,
+                    "num_results": num_results,
                     "url": url_input.strip(),
-                    "duration_label": duration_option[0],
-                    "duration_minutes": recency_minutes_val,
                     "created_at": datetime.now(timezone.utc).isoformat()
                 })
                 save_store(store_data)
                 st.success(f"Monitor '{monitor_name.strip()}' saved successfully!")
 
-        with st.status("Executing Search & Knowledge Synthesis...", expanded=True) as status:
-            st.write(f"Goal: **{goal_input}**")
-            st.write(f"Keywords: **{query_input}**")
+        with st.status("Executing Monitor Run...", expanded=True) as status:
+            st.write(f"Query: **{query_input}**")
+            st.write(f"Cadence: **{cadence_label}** (`recency_minutes={recency_mins}`)")
             
             highlights = []
-            synthesized_answer = ""
             
-            # Automatic domain quality filter (removes low-quality spam/social chatter)
-            excluded_spam = "facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com"
-            
-            # Intelligent query formulation based on user's goal
-            final_query = f"{query_input.strip()} {goal_input.strip()}".strip()
-
             if api_key and not api_key.startswith("your_"):
                 try:
                     from tinyfish import TinyFish
                     client = TinyFish(api_key=api_key)
                     
                     if url_input.strip():
-                        # Deep Autonomous Agent on Target URL
+                        # Autonomous Agent execution on specific URL
                         st.write(f"Deploying Web Agent to `{url_input.strip()}`...")
-                        prompt = f"Goal: {goal_input}. Search terms/keywords: {query_input}. Extract a comprehensive structured breakdown, key takeaways, and all detailed facts from this page."
+                        prompt = f"Extract all key updates, content details, and summary matching query: '{query_input}'."
                         resp = client.agent.run(url=url_input.strip(), goal=prompt)
                         
                         raw_result = resp.result if hasattr(resp, "result") else str(resp)
-                        synthesized_answer = f"Autonomous Web Agent analyzed {url_input.strip()} for '{query_input}'."
                         highlights = [{
-                            "title": f"Extracted Content from {get_domain(url_input.strip())}",
-                            "context": str(raw_result),
+                            "title": f"Extracted from {get_domain(url_input.strip())}",
+                            "snippet": str(raw_result),
                             "url": url_input.strip(),
                             "published_date": None
                         }]
                     else:
-                        st.write("Executing live web search with spam exclusion...")
+                        # Exa-style Live Web Search via TinyFish
+                        st.write("Querying live web index with cadence window...")
+                        
                         search_resp = client.search.query(
-                            query=final_query,
-                            purpose=f"Extract accurate, authoritative details fulfilling goal: {goal_input} for topics: {query_input}",
-                            recency_minutes=recency_minutes_val,
-                            exclude_domains=excluded_spam
+                            query=query_input.strip(),
+                            purpose=f"Live monitor query for: {query_input.strip()}",
+                            recency_minutes=recency_mins,
+                            exclude_domains="facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com"
                         )
                         
-                        results_list = getattr(search_resp, "results", [])
+                        results_list = getattr(search_resp, "results", [])[:num_results]
                         
                         for item in results_list:
                             title = getattr(item, "title", "Result")
@@ -409,47 +370,40 @@ if search_submitted:
                             pub_date = getattr(item, "published_date", None)
                             highlights.append({
                                 "title": title,
-                                "context": snippet,
+                                "snippet": snippet,
                                 "url": link,
                                 "published_date": pub_date
                             })
                             
-                        # Build rich synthesis
-                        if highlights:
-                            synthesized_answer = f"Based on live web sources for **{query_input}** regarding *'{goal_input}'*, here are the key extracted insights and authoritative references:"
-                        else:
-                            synthesized_answer = f"No results found matching your criteria. Try widening your keywords or time window."
-
-                    status.update(label="Search and extraction completed!", state="complete", expanded=False)
+                    status.update(label="Monitor run completed successfully!", state="complete", expanded=False)
                 except Exception as e:
-                    status.update(label="Search encountered an error", state="error")
+                    status.update(label="Monitor run failed", state="error")
                     st.error(f"TinyFish Error: {e}")
-                    synthesized_answer = "Execution failed."
             else:
-                # Simulation fallback mode
+                # Realistic Exa-style fallback simulation
                 time.sleep(1.0)
-                synthesized_answer = f"Synthesized findings for goal: **'{goal_input}'** on topics **{query_input}** ({duration_option[0]}):"
+                clean_q = query_input.title()
                 highlights = [
                     {
-                        "title": f"Official Guide & Overview: {query_input.title()}",
-                        "context": f"Authoritative documentation and structured breakdown answering '{goal_input}'. Covers core principles, practical implementations, and best practices.",
-                        "url": "https://roadmap.sh" if "roadmap" in goal_input.lower() else "https://github.com",
-                        "published_date": "2026-09-01"
+                        "title": f"Latest Analysis & Breaking Updates: {clean_q}",
+                        "snippet": f"Comprehensive report covering recent announcements, market trends, and key takeaways for {query_input}. Published within the selected {cadence_label} window.",
+                        "url": "https://techcrunch.com" if "news" in query_input.lower() else "https://roadmap.sh",
+                        "published_date": "2026-09-02T14:30:00Z"
                     },
                     {
-                        "title": f"Production Workflows & Architecture for {query_input.title()}",
-                        "context": f"Deep dive and structured takeaways matching {goal_input}. Details tools, architectures, and real-world examples.",
-                        "url": "https://towardsdatascience.com",
-                        "published_date": "2026-08-28"
-                    },
-                    {
-                        "title": f"Community Implementations & References",
-                        "context": f"Verified open-source repositories and guides detailing {query_input}.",
+                        "title": f"Deep Dive: Key Highlights and Industry Developments on {clean_q}",
+                        "snippet": f"Technical breakdown and verified documentation regarding {query_input}. Analyzes structural updates, features, and roadmaps.",
                         "url": "https://github.com",
-                        "published_date": "2026-08-20"
+                        "published_date": "2026-09-01T09:15:00Z"
+                    },
+                    {
+                        "title": f"Strategic Overview & Expert Insights: {clean_q}",
+                        "snippet": f"Expert insights detailing recent updates, tools, and discussions around {query_input}.",
+                        "url": "https://towardsdatascience.com",
+                        "published_date": "2026-08-30T18:00:00Z"
                     }
-                ]
-                status.update(label="Results ready!", state="complete", expanded=False)
+                ][:num_results]
+                status.update(label="Preview results ready!", state="complete", expanded=False)
 
         # Diff & Change Detection: Identify New Matches
         seen_urls_map = store_data.setdefault("seen_urls", {})
@@ -468,51 +422,43 @@ if search_submitted:
         seen_urls_map[query_input.strip()] = list(query_seen)
         save_store(store_data)
 
-        # Render Synthesized Insights
+        # Render Exa-Style Results Section
         st.write("")
-        st.markdown(f"""
-        <div class="insights-card">
-            <div class="insights-title">💡 Key Findings & Synthesis</div>
-            <div class="insights-body">{synthesized_answer}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Render Results Section
-        st.subheader("📋 Verified Sources & Evidence")
+        st.subheader("📋 Monitor Results")
         
-        col_res1, col_res2 = st.columns([3, 1])
-        with col_res1:
-            st.caption(f"Showing **{len(highlights)}** authoritative resources matching your goal.")
-        with col_res2:
-            st.metric("New Detections", new_count, delta=f"+{new_count} New" if new_count > 0 else "0 New")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            st.metric("Total Matches", len(highlights))
+        with col_m2:
+            st.metric("New Findings", new_count, delta=f"+{new_count} New" if new_count > 0 else "0 New")
+        with col_m3:
+            st.metric("Cadence Filter", cadence_label)
 
         if highlights:
             for idx, item in enumerate(highlights, 1):
                 title = item.get("title", f"Result #{idx}")
-                context = item.get("context", "")
+                snippet = item.get("snippet", "")
                 url = item.get("url", "#")
                 pub_date = item.get("published_date")
                 is_new = item.get("is_new", False)
                 domain = get_domain(url)
                 
-                date_html = f'<span class="date-badge">📅 {str(pub_date)[:10]}</span>' if pub_date else ''
+                date_str = str(pub_date)[:10] if pub_date else "Recent"
+                date_html = f'<span class="date-badge">📅 {date_str}</span>'
                 new_badge_html = '<span class="badge-new">NEW</span>' if is_new else ''
                 
                 st.markdown(f"""
-                <div class="card-container">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 6px;">
-                        <div class="card-title">{title} {new_badge_html}</div>
+                <div class="exa-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 6px;">
+                        <div class="exa-title">{title} {new_badge_html}</div>
                         <div style="display: flex; gap: 6px; align-items: center;">
                             {date_html}
-                            <span class="domain-badge">{domain}</span>
+                            <span class="domain-badge">🌐 {domain}</span>
                         </div>
                     </div>
-                    <div class="card-snippet">{context}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 8px;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                            {''.join([f'<span class="kw-chip">#{k}</span>' for k in kw_list])}
-                        </div>
-                        <a href="{url}" target="_blank" class="link-button">Open Source &rarr;</a>
+                    <div class="exa-snippet">{snippet}</div>
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 0.6rem;">
+                        <a href="{url}" target="_blank" class="link-button">Open Link &rarr;</a>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -525,7 +471,7 @@ if search_submitted:
                 st.download_button(
                     "📥 Export Results as CSV",
                     data=df_export.to_csv(index=False),
-                    file_name="tinyfish_results.csv",
+                    file_name="tinyfish_monitor_results.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
