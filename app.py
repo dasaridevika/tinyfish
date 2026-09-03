@@ -3,7 +3,7 @@ import os
 import json
 import time
 import pandas as pd
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
@@ -67,16 +67,29 @@ st.markdown("""
         margin-bottom: 0.6rem;
         box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
     }
-    .status-badge {
-        background: rgba(255, 255, 255, 0.15);
-        color: #E2E8F0 !important;
+    .status-live {
+        background: #065F46;
+        color: #A7F3D0 !important;
         padding: 4px 12px;
         border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        display: inline-block;
-        margin-left: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #10B981;
+    }
+    .status-standby {
+        background: #78350F;
+        color: #FDE68A !important;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #F59E0B;
     }
     .hero-title {
         font-size: 2.4rem;
@@ -211,18 +224,20 @@ def get_domain(url_str: str) -> str:
     except Exception:
         return "web"
 
-# Resolve API Key from Streamlit Secrets or Environment (case-insensitive)
-api_key = ""
-try:
-    if hasattr(st, "secrets"):
-        for k in ["TINYFISH_API_KEY", "tinyfish_api_key", "TINYFISH_KEY", "tinyfish_key", "API_KEY", "api_key"]:
-            if k in st.secrets:
-                api_key = str(st.secrets[k]).strip()
-                break
-        if not api_key and "tinyfish" in st.secrets:
-            api_key = str(st.secrets["tinyfish"].get("api_key", "")).strip()
-except Exception:
-    pass
+# Resolve API Key from Streamlit Secrets, Environment, or Session State
+api_key = st.session_state.get("api_key", "").strip()
+
+if not api_key:
+    try:
+        if hasattr(st, "secrets"):
+            for k in ["TINYFISH_API_KEY", "tinyfish_api_key", "TINYFISH_KEY", "tinyfish_key", "API_KEY", "api_key"]:
+                if k in st.secrets:
+                    api_key = str(st.secrets[k]).strip()
+                    break
+            if not api_key and "tinyfish" in st.secrets:
+                api_key = str(st.secrets["tinyfish"].get("api_key", "")).strip()
+    except Exception:
+        pass
 
 if not api_key:
     for k in ["TINYFISH_API_KEY", "tinyfish_api_key", "TINYFISH_KEY", "API_KEY"]:
@@ -231,19 +246,31 @@ if not api_key:
             api_key = val.strip()
             break
 
-status_pill = "🟢 Live TinyFish Connected" if api_key and not api_key.startswith("your_") else "🟡 Standby Mode"
+is_live = bool(api_key and not api_key.startswith("your_"))
+status_html = '<span class="status-live">🟢 Live API Active</span>' if is_live else '<span class="status-standby">🟡 Enter API Key</span>'
 
 # Header Hero Section
 st.markdown(f"""
 <div class="hero-container">
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
         <div class="hero-badge">Exa-Style AI Web Monitor</div>
-        <div class="status-badge">{status_pill}</div>
+        <div>{status_html}</div>
     </div>
     <div class="hero-title">TinyFish Monitor</div>
-    <div class="hero-tagline">Track web topics, roadmaps, competitor news, and keyword changes on a recurring cadence.</div>
+    <div class="hero-tagline">Real-time web monitoring and search powered by TinyFish AI Web Agents.</div>
 </div>
 """, unsafe_allow_html=True)
+
+# If key not detected, provide an easy 1-click input box
+if not is_live:
+    with st.expander("🔑 Connect TinyFish API Key (Required for 100% Live Deep Links)", expanded=True):
+        st.info("Paste your TinyFish API Key (from [agent.tinyfish.ai](https://agent.tinyfish.ai)) to execute real-time web index searches:")
+        user_key = st.text_input("TinyFish API Key", type="password", placeholder="sk-tinyfish-...")
+        if st.button("Connect Key", use_container_width=True):
+            if user_key.strip():
+                st.session_state["api_key"] = user_key.strip()
+                st.success("Connected! Running searches in live mode.")
+                st.rerun()
 
 # Load existing store
 store_data = load_store()
@@ -395,7 +422,7 @@ if run_submitted:
                             link = getattr(item, "url", None) or (item.get("url") if isinstance(item, dict) else "#")
                             pub_date = getattr(item, "published_date", None) or (item.get("published_date") if isinstance(item, dict) else None)
                             
-                            if link and link != "#":
+                            if link and link != "#" and link.startswith("http"):
                                 highlights.append({
                                     "title": title,
                                     "snippet": snippet,
@@ -414,45 +441,11 @@ if run_submitted:
                             
                     status.update(label="✅ Live results fetched successfully!", state="complete", expanded=False)
                 except Exception as e:
-                    status.update(label="❌ Search error from API", state="error")
-                    st.error(f"TinyFish API Error: {e}")
+                    status.update(label="❌ TinyFish Search Error", state="error")
+                    st.error(f"TinyFish API Error: {e}. Please check your API key.")
             else:
-                status.update(label="⚠️ Running in Demo Mode (Add API Key in Streamlit Secrets for 100% Live Index)", state="complete", expanded=False)
-                
-                clean_q = query_input.title()
-                now_dt = datetime.now(timezone.utc)
-                
-                # Dynamic rich set matching requested num_results
-                demo_catalog = [
-                    (f"Latest Analysis & Breaking Industry Updates: {clean_q}", f"Comprehensive real-time overview covering recent announcements, market trends, and key takeaways for {query_input}. Published within the selected {cadence_label} window.", "https://techcrunch.com", now_dt.strftime("%Y-%m-%d")),
-                    (f"Complete Framework Documentation & Production Architecture: {clean_q}", f"Technical breakdown, official repository updates, and verified implementation guides regarding {query_input}.", "https://github.com", (now_dt - timedelta(days=1)).strftime("%Y-%m-%d")),
-                    (f"Strategic Roadmap & Practical Implementation Path: {clean_q}", f"Authoritative step-by-step developer guide, architectural milestones, and recommended tools for mastering {query_input}.", "https://towardsdatascience.com", (now_dt - timedelta(days=2)).strftime("%Y-%m-%d")),
-                    (f"Executive Briefing & Ecosystem Analysis: {clean_q}", f"Market research breakdown analyzing commercial adoption, enterprise tooling, and competitive landscape for {query_input}.", "https://venturebeat.com", (now_dt - timedelta(days=3)).strftime("%Y-%m-%d")),
-                    (f"Best Practices & Scalable Systems Guide for {clean_q}", f"In-depth technical review exploring scalability, security practices, and integration patterns for {query_input}.", "https://dev.to", (now_dt - timedelta(days=4)).strftime("%Y-%m-%d")),
-                    (f"State of the Art Research & Benchmark Reports: {clean_q}", f"Academic survey and benchmark performance evaluation on emerging models and techniques in {query_input}.", "https://arxiv.org", (now_dt - timedelta(days=5)).strftime("%Y-%m-%d")),
-                    (f"Community Discussion & Developer Showcase: {clean_q}", f"Top discussions, open-source toolkits, and curated learning roadmaps regarding {query_input}.", "https://news.ycombinator.com", (now_dt - timedelta(days=6)).strftime("%Y-%m-%d")),
-                    (f"Official Specifications & Architecture Patterns: {clean_q}", f"Standard reference documentation and official API specification guides for {query_input}.", "https://roadmap.sh", (now_dt - timedelta(days=7)).strftime("%Y-%m-%d")),
-                    (f"Deep Dive Tutorial: Zero to Production with {clean_q}", f"End-to-end tutorial building full-stack workflows, automated pipelines, and testing suites for {query_input}.", "https://freecodecamp.org", (now_dt - timedelta(days=8)).strftime("%Y-%m-%d")),
-                    (f"Global Market Outlook & Enterprise Trends: {clean_q}", f"Global market report tracking investments, enterprise case studies, and future roadmap projections for {query_input}.", "https://reuters.com", (now_dt - timedelta(days=9)).strftime("%Y-%m-%d")),
-                    (f"Troubleshooting & Production Lessons Learned: {clean_q}", f"Practical debugging techniques, common pitfalls to avoid, and optimization strategies for {query_input}.", "https://medium.com", (now_dt - timedelta(days=10)).strftime("%Y-%m-%d")),
-                    (f"Hands-On Workshop & Repository Blueprint: {clean_q}", f"Complete starter repository, boilerplate code, and architectural blueprint for deploying {query_input}.", "https://gitlab.com", (now_dt - timedelta(days=11)).strftime("%Y-%m-%d")),
-                    (f"Enterprise Security & Governance Review: {clean_q}", f"Comprehensive security audit checklist, compliance standards, and data privacy considerations for {query_input}.", "https://infosecurity-magazine.com", (now_dt - timedelta(days=12)).strftime("%Y-%m-%d")),
-                    (f"Performance Optimization & Benchmarking Suite: {clean_q}", f"Empirical performance testing results, latency reduction tips, and resource allocation guides for {query_input}.", "https://infoq.com", (now_dt - timedelta(days=13)).strftime("%Y-%m-%d")),
-                    (f"Next-Gen Integrations & Ecosystem Tools: {clean_q}", f"Exploring next-generation integrations, plugin architectures, and developer ecosystems surrounding {query_input}.", "https://thenewstack.io", (now_dt - timedelta(days=14)).strftime("%Y-%m-%d")),
-                    (f"Comparative Benchmark Study: {clean_q} vs Alternatives", f"Detailed side-by-side comparison evaluating trade-offs, pricing, speed, and capabilities for {query_input}.", "https://kdnuggets.com", (now_dt - timedelta(days=15)).strftime("%Y-%m-%d")),
-                    (f"Automated Testing & Continuous Evaluation for {clean_q}", f"Building robust CI/CD pipelines, evaluation suites, and automated monitoring for {query_input}.", "https://circleci.com", (now_dt - timedelta(days=16)).strftime("%Y-%m-%d")),
-                    (f"Case Study: Enterprise Deployment of {clean_q}", f"Real-world enterprise case study examining deployment challenges, ROI metrics, and architectural outcomes for {query_input}.", "https://zdnet.com", (now_dt - timedelta(days=17)).strftime("%Y-%m-%d")),
-                    (f"Community Roadmap & Future Feature Outlook: {clean_q}", f"Open-source community roadmap, scheduled feature releases, and upcoming milestones for {query_input}.", "https://producthunt.com", (now_dt - timedelta(days=18)).strftime("%Y-%m-%d")),
-                    (f"Mastering {clean_q}: Advanced Concepts & Patterns", f"Expert-level deep dive into internal mechanics, memory management, and advanced design patterns for {query_input}.", "https://oreilly.com", (now_dt - timedelta(days=19)).strftime("%Y-%m-%d"))
-                ]
-                
-                for t, s, u, d in demo_catalog[:num_results]:
-                    highlights.append({
-                        "title": t,
-                        "snippet": s,
-                        "url": u,
-                        "published_date": d
-                    })
+                status.update(label="⚠️ API Key Missing - Paste your key in the box above to fetch live links", state="error")
+                st.error("TinyFish API Key is required to fetch 100% live deep web links. Please expand the 'Connect TinyFish API Key' box above and paste your key.")
 
         # Diff & Change Detection: Identify New Matches
         seen_urls_map = store_data.setdefault("seen_urls", {})
@@ -472,18 +465,18 @@ if run_submitted:
         save_store(store_data)
 
         # Render Exa-Style Results Section
-        st.write("")
-        st.subheader("📋 Verified Monitor Results")
-        
-        col_m1, col_m2, col_m3 = st.columns(3)
-        with col_m1:
-            st.metric("Total Matches", len(highlights))
-        with col_m2:
-            st.metric("New Findings", new_count, delta=f"+{new_count} New" if new_count > 0 else "0 New")
-        with col_m3:
-            st.metric("Cadence Filter", cadence_label)
-
         if highlights:
+            st.write("")
+            st.subheader("📋 100% Verified Live Results")
+            
+            col_m1, col_m2, col_m3 = st.columns(3)
+            with col_m1:
+                st.metric("Total Matches", len(highlights))
+            with col_m2:
+                st.metric("New Findings", new_count, delta=f"+{new_count} New" if new_count > 0 else "0 New")
+            with col_m3:
+                st.metric("Cadence Filter", cadence_label)
+
             for idx, item in enumerate(highlights, 1):
                 title = item.get("title", f"Result #{idx}")
                 snippet = item.get("snippet", "")
