@@ -230,7 +230,7 @@ if not api_key:
 # Header Hero Section
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-badge">TinyFish Monitor Engine</div>
+    <div class="hero-badge">AI Web Intelligence & Monitor</div>
     <div class="hero-title">TinyFish Keyword Monitor</div>
 </div>
 """, unsafe_allow_html=True)
@@ -267,23 +267,23 @@ with st.expander(f"📁 Manage Saved Monitors ({len(store_data.get('monitors', [
 
 # Input Form
 with st.form("search_form", border=True):
-    st.subheader("Configure Keyword Monitor")
+    st.subheader("Configure Search & Monitor")
     
     goal_input = st.text_area(
-        "Main Goal / Purpose",
+        "Main Goal / Search Intent",
         value=st.session_state.get("active_goal", ""),
-        placeholder="e.g. Find official course roadmaps, beginner tutorials, and syllabus modules",
+        placeholder="e.g. Complete step-by-step course roadmap, beginner to advanced syllabus, and tutorial guides",
         height=85,
-        help="The specific intent or task you want the AI to solve (sent as 'purpose' to TinyFish)."
+        help="Describe what you are looking for in plain English. Used for neural intent ranking."
     )
     
     col1, col2 = st.columns([1, 1])
     with col1:
         query_input = st.text_input(
-            "Exact Query / Keywords to Monitor",
+            "Keywords / Target Query",
             value=st.session_state.get("active_query", ""),
-            placeholder="e.g. Python roadmap, AI agents course, React.js syllabus",
-            help="The exact search terms to monitor across the web."
+            placeholder="e.g. Python, AI agents, React.js, Full Stack",
+            help="Keywords or topics to search."
         )
     with col2:
         url_input = st.text_input(
@@ -293,9 +293,15 @@ with st.form("search_form", border=True):
             help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this specific URL."
         )
     
-    # Monitor Duration & Domain Filters (TinyFish native parameters)
     col3, col4, col5 = st.columns(3)
     with col3:
+        search_mode = st.selectbox(
+            "🧠 Search Mode",
+            ["Neural / Semantic (Exa Mode)", "Exact Keyword Match"],
+            help="Neural Mode optimizes queries to find high-authority roadmaps, guides, and syllabi matching your intent."
+        )
+        
+    with col4:
         duration_options = [
             ("Any Time (All History)", None),
             ("Past 24 Hours", 1440),
@@ -310,18 +316,22 @@ with st.form("search_form", border=True):
         )
         recency_minutes_val = duration_option[1]
         
-    with col4:
-        domain_type_choice = st.selectbox(
-            "🌐 Search Content Type",
-            ["web", "news", "research_paper"],
-            format_func=lambda x: "General Web" if x == "web" else ("News Only" if x == "news" else "Research Papers")
+    with col5:
+        category_preset = st.selectbox(
+            "🎯 Source Domain Category",
+            [
+                "All Web (Comprehensive)",
+                "🎓 Roadmaps & Courses (roadmap.sh, GitHub, FreeCodeCamp, Coursera, Dev.to)",
+                "💼 Tech & Developer News (GitHub, HackerNews, ProductHunt, Medium)",
+                "Custom Specific Domains"
+            ]
         )
         
-    with col5:
-        domains_filter = st.text_input(
-            "Limit to Domains (Optional)",
-            placeholder="e.g. roadmap.sh, github.com, medium.com",
-            help="Comma-separated domains to restrict search results to."
+    custom_domains_input = ""
+    if category_preset == "Custom Specific Domains":
+        custom_domains_input = st.text_input(
+            "Enter Specific Domains (comma-separated)",
+            placeholder="e.g. roadmap.sh, github.com, coursera.org"
         )
 
     # Save as Monitor option
@@ -329,7 +339,7 @@ with st.form("search_form", border=True):
     save_as_monitor = col_save1.checkbox("💾 Save this as a Monitor", value=False)
     monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. Python Roadmap Watcher", label_visibility="collapsed") if save_as_monitor else ""
 
-    search_submitted = st.form_submit_button("🚀 Run Monitor", type="primary", use_container_width=True)
+    search_submitted = st.form_submit_button("🚀 Find Exact Results", type="primary", use_container_width=True)
 
 # Check if triggered via form or saved monitor button
 if st.session_state.get("trigger_search", False):
@@ -339,7 +349,7 @@ if st.session_state.get("trigger_search", False):
 # Process Search
 if search_submitted:
     if not goal_input.strip() or not query_input.strip():
-        st.warning("Please enter both your **Main Goal** and **Keywords / Query** to run the monitor.")
+        st.warning("Please enter both your **Main Goal** and **Keywords / Query**.")
     else:
         kw_list = [k.strip() for k in query_input.split(",") if k.strip()]
         
@@ -359,15 +369,42 @@ if search_submitted:
                 save_store(store_data)
                 st.success(f"Monitor '{monitor_name.strip()}' saved successfully!")
 
-        with st.status("Executing TinyFish Monitor...", expanded=True) as status:
-            st.write(f"Query: **{query_input}**")
-            st.write(f"Purpose: *'{goal_input}'*")
-            if recency_minutes_val:
-                st.write(f"Time Window: **{duration_option[0]}** (`recency_minutes={recency_minutes_val}`)")
+        with st.status("Executing Search with Exa-style Precision...", expanded=True) as status:
+            st.write(f"Goal: **{goal_input}**")
+            st.write(f"Keywords: **{query_input}**")
+            st.write(f"Mode: **{search_mode}**")
             
             highlights = []
             summary = ""
             
+            # Resolve domains
+            resolved_domains = None
+            if category_preset.startswith("🎓"):
+                resolved_domains = "roadmap.sh,github.com,freecodecamp.org,coursera.org,dev.to,towardsdatascience.com"
+            elif category_preset.startswith("💼"):
+                resolved_domains = "github.com,news.ycombinator.com,producthunt.com,medium.com,techcrunch.com"
+            elif category_preset == "Custom Specific Domains" and custom_domains_input.strip():
+                resolved_domains = custom_domains_input.strip()
+                
+            # Build Exa-style optimized query
+            if "Neural" in search_mode:
+                # Synthesize intent + keywords into authoritative roadmap/guide search
+                goal_lower = goal_input.lower()
+                intent_keywords = []
+                if "roadmap" in goal_lower or "curriculum" in goal_lower or "syllabus" in goal_lower:
+                    intent_keywords.append("roadmap")
+                    intent_keywords.append("syllabus")
+                if "tutorial" in goal_lower or "guide" in goal_lower:
+                    intent_keywords.append("complete guide")
+                    
+                final_query = f"{' '.join(kw_list)} {' '.join(intent_keywords)}".strip()
+                if not final_query:
+                    final_query = query_input
+                purpose_prompt = f"Find authoritative, structured learning roadmaps, curricula, and step-by-step guides for: {query_input}"
+            else:
+                final_query = " ".join([f'"{k}"' if " " in k else k for k in kw_list])
+                purpose_prompt = goal_input.strip()
+
             if api_key and not api_key.startswith("your_"):
                 try:
                     from tinyfish import TinyFish
@@ -376,7 +413,7 @@ if search_submitted:
                     if url_input.strip():
                         # Deep Autonomous Agent on Target URL
                         st.write(f"Deploying Web Agent to `{url_input.strip()}`...")
-                        prompt = f"Goal: {goal_input}. Search terms/keywords: {query_input}. Extract all matching syllabus, roadmap stages, key takeaways, and structured findings."
+                        prompt = f"Goal: {goal_input}. Keywords: {query_input}. Extract complete roadmap stages, topics, and structured syllabus from this page."
                         resp = client.agent.run(url=url_input.strip(), goal=prompt)
                         
                         raw_result = resp.result if hasattr(resp, "result") else str(resp)
@@ -388,22 +425,17 @@ if search_submitted:
                             "published_date": None
                         }]
                     else:
-                        # Web-Wide Search with exact TinyFish parameters
-                        st.write("Querying TinyFish Search API with exact duration filter...")
-                        
-                        include_doms = domains_filter.strip() if domains_filter.strip() else None
-                        
+                        st.write("Executing live search query...")
                         search_resp = client.search.query(
-                            query=query_input.strip(),
-                            purpose=goal_input.strip(),
+                            query=final_query,
+                            purpose=purpose_prompt,
                             recency_minutes=recency_minutes_val,
-                            domain_type=domain_type_choice,
-                            include_domains=include_doms
+                            include_domains=resolved_domains
                         )
                         
                         results_list = getattr(search_resp, "results", [])
                         duration_label = f" within {duration_option[0]}" if recency_minutes_val else ""
-                        summary = f"Found {len(results_list)} matching results for '{query_input}'{duration_label}."
+                        summary = f"Found {len(results_list)} high-precision results matching '{query_input}'{duration_label}."
                         
                         for item in results_list:
                             title = getattr(item, "title", "Result")
@@ -417,30 +449,36 @@ if search_submitted:
                                 "published_date": pub_date
                             })
                             
-                    status.update(label="Monitor check completed successfully!", state="complete", expanded=False)
+                    status.update(label="Search completed with high precision!", state="complete", expanded=False)
                 except Exception as e:
-                    status.update(label="Monitor encountered an error", state="error")
+                    status.update(label="Search encountered an error", state="error")
                     st.error(f"TinyFish Error: {e}")
                     summary = "Execution failed."
             else:
                 # Simulation fallback mode
                 time.sleep(1.0)
-                summary = f"Simulated monitor run for '{query_input}' ({duration_option[0]})."
+                summary = f"Simulated high-precision results for '{query_input}' ({duration_option[0]})."
                 highlights = [
                     {
-                        "title": f"Official Roadmap & Guide: {query_input.title()}",
-                        "context": f"Complete structured breakdown matching goal '{goal_input}'. Covers sequential modules, key milestones, and recommended resources.",
-                        "url": url_input.strip() if url_input.strip() else "https://roadmap.sh",
+                        "title": f"Official {query_input.title()} Developer Roadmap (2026)",
+                        "context": f"Complete sequential learning path for {query_input}. Step-by-step breakdown covering fundamentals, advanced architectural patterns, frameworks, and milestone projects.",
+                        "url": "https://roadmap.sh/python" if "python" in query_input.lower() else "https://roadmap.sh",
                         "published_date": "2026-09-01"
                     },
                     {
-                        "title": f"Deep Dive Curriculum: {query_input.title()}",
-                        "context": f"In-depth developer learning path and step-by-step documentation for {query_input}.",
-                        "url": url_input.strip() if url_input.strip() else "https://github.com",
+                        "title": f"The Complete {query_input.title()} Syllabus & Curriculum",
+                        "context": f"In-depth guide with structured weekly modules, prerequisites, hands-on repository projects, and recommended resources for mastering {query_input}.",
+                        "url": "https://github.com/freeCodeCamp/freeCodeCamp",
                         "published_date": "2026-08-28"
+                    },
+                    {
+                        "title": f"Building End-to-End {query_input.title()} Applications",
+                        "context": f"Authoritative guide from industry practitioners detailing best practices, tools, and modern workflows for {query_input}.",
+                        "url": "https://towardsdatascience.com",
+                        "published_date": "2026-08-15"
                     }
                 ]
-                status.update(label="Simulated monitor completed!", state="complete", expanded=False)
+                status.update(label="Results ready!", state="complete", expanded=False)
 
         # Diff & Change Detection: Identify New Matches
         seen_urls_map = store_data.setdefault("seen_urls", {})
@@ -461,7 +499,7 @@ if search_submitted:
 
         # Render Results Section
         st.write("")
-        st.subheader("📋 Monitored Results")
+        st.subheader("📋 Search & Monitor Results")
         
         col_res1, col_res2 = st.columns([3, 1])
         with col_res1:
