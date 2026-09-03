@@ -307,7 +307,7 @@ with st.form("search_form", border=True):
             help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this specific URL."
         )
     
-    col3, col4 = st.columns(2)
+    col3, col4 = st.columns([1, 1])
     with col3:
         duration_options = [
             ("Any Time (All History)", None),
@@ -324,18 +324,10 @@ with st.form("search_form", border=True):
         recency_minutes_val = duration_option[1]
         
     with col4:
-        quality_filter = st.selectbox(
-            "🎯 Source Quality Filter",
-            [
-                "High-Authority & Developer Sources Only (Removes spam & social chatter)",
-                "All Web Sources"
-            ]
-        )
-
-    # Save as Monitor option
-    col_save1, col_save2 = st.columns([1, 2])
-    save_as_monitor = col_save1.checkbox("💾 Save this as a Monitor", value=False)
-    monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. AI Tech Watcher", label_visibility="collapsed") if save_as_monitor else ""
+        # Save as Monitor option
+        col_save1, col_save2 = st.columns([1, 2])
+        save_as_monitor = col_save1.checkbox("💾 Save as Monitor", value=False)
+        monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. AI Tech Watcher", label_visibility="collapsed") if save_as_monitor else ""
 
     search_submitted = st.form_submit_button("🚀 Find & Synthesize Results", type="primary", use_container_width=True)
 
@@ -374,8 +366,8 @@ if search_submitted:
             highlights = []
             synthesized_answer = ""
             
-            # Domain filtering
-            excluded_spam = "facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com" if "High-Authority" in quality_filter else None
+            # Automatic domain quality filter (removes low-quality spam/social chatter)
+            excluded_spam = "facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com"
             
             # Intelligent query formulation based on user's goal
             final_query = f"{query_input.strip()} {goal_input.strip()}".strip()
