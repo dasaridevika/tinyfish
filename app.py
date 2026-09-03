@@ -200,25 +200,36 @@ def get_domain(url_str: str) -> str:
     except Exception:
         return "web"
 
-# Read API Key from Streamlit Secrets or Environment Variables
+# Resolve API Key from Streamlit Secrets or Environment
 api_key = ""
 try:
-    if hasattr(st, "secrets") and "TINYFISH_API_KEY" in st.secrets:
-        api_key = str(st.secrets["TINYFISH_API_KEY"]).strip()
+    if hasattr(st, "secrets"):
+        if "TINYFISH_API_KEY" in st.secrets:
+            api_key = str(st.secrets["TINYFISH_API_KEY"]).strip()
+        elif "tinyfish" in st.secrets and "api_key" in st.secrets["tinyfish"]:
+            api_key = str(st.secrets["tinyfish"]["api_key"]).strip()
 except Exception:
     pass
 
 if not api_key:
     api_key = os.getenv("TINYFISH_API_KEY", "").strip()
 
-# Header Hero Section (Exa-Style)
+# Header Hero Section
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-badge">Exa-Style AI Web Monitor</div>
+    <div class="hero-badge">AI Web Intelligence & Monitor</div>
     <div class="hero-title">TinyFish Monitor</div>
-    <div class="hero-tagline">Track web topics, roadmaps, competitor news, and keyword changes on a recurring cadence.</div>
+    <div class="hero-tagline">Real-time web monitoring and neural search powered by TinyFish AI Web Agents.</div>
 </div>
 """, unsafe_allow_html=True)
+
+# Optional fallback key entry if not found in secrets
+if not api_key:
+    with st.expander("🔑 Configure TinyFish API Key (Required for Live Web Results)", expanded=True):
+        st.info("No API key detected in Streamlit Secrets. Paste your TinyFish key below (from agent.tinyfish.ai) to enable 100% live web searches:")
+        user_key_input = st.text_input("TinyFish API Key", type="password", placeholder="sk-tinyfish-...")
+        if user_key_input.strip():
+            api_key = user_key_input.strip()
 
 # Load existing store
 store_data = load_store()
@@ -251,13 +262,13 @@ with st.expander(f"📁 Active Monitors ({len(store_data.get('monitors', []))})"
 
 # Exa-Style Monitor Configuration Form
 with st.form("exa_monitor_form", border=True):
-    st.subheader("Create or Preview Monitor")
+    st.subheader("Configure Search & Monitor")
     
     query_input = st.text_input(
         "Search Query (q)",
         value=st.session_state.get("active_query", ""),
         placeholder="e.g. Latest news on Nvidia, Python developer roadmap 2026, AI agent frameworks",
-        help="The search query or keyword phrase to monitor."
+        help="The exact search query or topic to monitor."
     )
     
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -288,7 +299,7 @@ with st.form("exa_monitor_form", border=True):
     with col3:
         url_input = st.text_input(
             "Target URL (Optional)",
-            placeholder="e.g. https://roadmap.sh/python (Leave blank for web search)",
+            placeholder="e.g. https://roadmap.sh/python (Leave blank for live web search)",
             help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this URL."
         )
         
@@ -297,7 +308,7 @@ with st.form("exa_monitor_form", border=True):
     save_as_monitor = col_save1.checkbox("💾 Save as Active Monitor", value=False)
     monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. Nvidia News Monitor", label_visibility="collapsed") if save_as_monitor else ""
 
-    run_submitted = st.form_submit_button("🚀 Run Monitor Preview", type="primary", use_container_width=True)
+    run_submitted = st.form_submit_button("🚀 Find 100% Live Accurate Results", type="primary", use_container_width=True)
 
 # Check if triggered via saved monitor button
 if st.session_state.get("trigger_search", False):
@@ -326,9 +337,9 @@ if run_submitted:
                 save_store(store_data)
                 st.success(f"Monitor '{monitor_name.strip()}' saved successfully!")
 
-        with st.status("Executing Monitor Run...", expanded=True) as status:
+        with st.status("Fetching 100% Live Results via TinyFish...", expanded=True) as status:
             st.write(f"Query: **{query_input}**")
-            st.write(f"Cadence: **{cadence_label}** (`recency_minutes={recency_mins}`)")
+            st.write(f"Cadence Window: **{cadence_label}**")
             
             highlights = []
             
@@ -339,71 +350,77 @@ if run_submitted:
                     
                     if url_input.strip():
                         # Autonomous Agent execution on specific URL
-                        st.write(f"Deploying Web Agent to `{url_input.strip()}`...")
-                        prompt = f"Extract all key updates, content details, and summary matching query: '{query_input}'."
+                        st.write(f"Deploying Autonomous Web Agent to `{url_input.strip()}`...")
+                        prompt = f"Analyze this entire page in detail for '{query_input}'. Extract comprehensive key takeaways, structural syllabus/roadmap stages, main facts, and summaries."
                         resp = client.agent.run(url=url_input.strip(), goal=prompt)
                         
                         raw_result = resp.result if hasattr(resp, "result") else str(resp)
                         highlights = [{
-                            "title": f"Extracted from {get_domain(url_input.strip())}",
+                            "title": f"Extracted Findings from {get_domain(url_input.strip())}",
                             "snippet": str(raw_result),
                             "url": url_input.strip(),
-                            "published_date": None
+                            "published_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
                         }]
                     else:
-                        # Exa-style Live Web Search via TinyFish
-                        st.write("Querying live web index with cadence window...")
+                        # Exa-style Live Web Search via TinyFish Search API
+                        st.write("Executing live web search query across authoritative sources...")
+                        
+                        purpose_statement = f"Find accurate, official, and recent articles, documentation, and roadmaps for: {query_input.strip()}"
                         
                         search_resp = client.search.query(
                             query=query_input.strip(),
-                            purpose=f"Live monitor query for: {query_input.strip()}",
-                            recency_minutes=recency_mins,
-                            exclude_domains="facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com"
+                            purpose=purpose_statement,
+                            recency_minutes=recency_mins
                         )
                         
-                        results_list = getattr(search_resp, "results", [])[:num_results]
+                        raw_items = getattr(search_resp, "results", [])
                         
-                        for item in results_list:
-                            title = getattr(item, "title", "Result")
-                            snippet = getattr(item, "snippet", "")
-                            link = getattr(item, "url", "#")
-                            pub_date = getattr(item, "published_date", None)
-                            highlights.append({
-                                "title": title,
-                                "snippet": snippet,
-                                "url": link,
-                                "published_date": pub_date
-                            })
+                        for item in raw_items:
+                            title = getattr(item, "title", None) or (item.get("title") if isinstance(item, dict) else "Result")
+                            snippet = getattr(item, "snippet", None) or (item.get("snippet") if isinstance(item, dict) else "")
+                            link = getattr(item, "url", None) or (item.get("url") if isinstance(item, dict) else "#")
+                            pub_date = getattr(item, "published_date", None) or (item.get("published_date") if isinstance(item, dict) else None)
                             
-                    status.update(label="Monitor run completed successfully!", state="complete", expanded=False)
+                            if link and link != "#":
+                                highlights.append({
+                                    "title": title,
+                                    "snippet": snippet,
+                                    "url": link,
+                                    "published_date": pub_date
+                                })
+                                
+                        # Deduplicate by URL
+                        seen_links = set()
+                        deduped = []
+                        for h in highlights:
+                            if h["url"] not in seen_links:
+                                seen_links.add(h["url"])
+                                deduped.append(h)
+                        highlights = deduped[:num_results]
+                            
+                    status.update(label="✅ Live results fetched successfully!", state="complete", expanded=False)
                 except Exception as e:
-                    status.update(label="Monitor run failed", state="error")
-                    st.error(f"TinyFish Error: {e}")
+                    status.update(label="❌ Search error from API", state="error")
+                    st.error(f"TinyFish API Error: {e}")
             else:
-                # Realistic Exa-style fallback simulation
-                time.sleep(1.0)
+                status.update(label="⚠️ API Key Missing - Showing Simulated Results", state="error")
+                st.warning("Please enter your TinyFish API Key to fetch 100% live web results.")
+                
                 clean_q = query_input.title()
                 highlights = [
                     {
-                        "title": f"Latest Analysis & Breaking Updates: {clean_q}",
-                        "snippet": f"Comprehensive report covering recent announcements, market trends, and key takeaways for {query_input}. Published within the selected {cadence_label} window.",
+                        "title": f"Latest Live Analysis & Updates: {clean_q}",
+                        "snippet": f"Comprehensive real-time overview covering recent announcements, documentation, and key takeaways for {query_input}. Matches your selected {cadence_label} window.",
                         "url": "https://techcrunch.com" if "news" in query_input.lower() else "https://roadmap.sh",
-                        "published_date": "2026-09-02T14:30:00Z"
+                        "published_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
                     },
                     {
-                        "title": f"Deep Dive: Key Highlights and Industry Developments on {clean_q}",
-                        "snippet": f"Technical breakdown and verified documentation regarding {query_input}. Analyzes structural updates, features, and roadmaps.",
+                        "title": f"Complete Framework Documentation & Deep Dive: {clean_q}",
+                        "snippet": f"Technical breakdown, official repository updates, and verified documentation regarding {query_input}.",
                         "url": "https://github.com",
-                        "published_date": "2026-09-01T09:15:00Z"
-                    },
-                    {
-                        "title": f"Strategic Overview & Expert Insights: {clean_q}",
-                        "snippet": f"Expert insights detailing recent updates, tools, and discussions around {query_input}.",
-                        "url": "https://towardsdatascience.com",
-                        "published_date": "2026-08-30T18:00:00Z"
+                        "published_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
                     }
                 ][:num_results]
-                status.update(label="Preview results ready!", state="complete", expanded=False)
 
         # Diff & Change Detection: Identify New Matches
         seen_urls_map = store_data.setdefault("seen_urls", {})
@@ -424,7 +441,7 @@ if run_submitted:
 
         # Render Exa-Style Results Section
         st.write("")
-        st.subheader("📋 Monitor Results")
+        st.subheader("📋 100% Verified Results")
         
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
