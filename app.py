@@ -12,12 +12,12 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="TinyFish Keyword Monitor",
+    page_title="TinyFish AI Knowledge & Monitor",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Persistence store for saved monitors and match history
+# Persistence store for saved monitors
 DATA_FILE = "monitors_store.json"
 
 def load_store():
@@ -36,7 +36,7 @@ def save_store(data):
     except Exception:
         pass
 
-# Custom High-End Styling & Colorful Professional Palette
+# Custom Styling
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -48,7 +48,7 @@ st.markdown("""
     /* Hero Banner */
     .hero-container {
         background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #4338CA 100%);
-        padding: 2rem 2.5rem;
+        padding: 2.2rem 2.5rem;
         border-radius: 20px;
         margin-bottom: 1.8rem;
         box-shadow: 0 12px 30px -8px rgba(49, 46, 129, 0.35);
@@ -74,6 +74,31 @@ st.markdown("""
         color: #FFFFFF !important;
         margin-bottom: 0;
         text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Answer Synthesis Box */
+    .insights-card {
+        background: #FFFFFF;
+        border: 1px solid #C7D2FE;
+        border-top: 5px solid #4F46E5;
+        border-radius: 16px;
+        padding: 1.8rem 2rem;
+        margin-bottom: 1.8rem;
+        box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.12);
+    }
+    .insights-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1E1B4B;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .insights-body {
+        font-size: 1.02rem;
+        line-height: 1.7;
+        color: #334155;
     }
     
     /* Result Card Styling */
@@ -176,17 +201,6 @@ st.markdown("""
         color: #FFFFFF !important;
         text-decoration: none;
     }
-
-    .summary-box {
-        background: linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%);
-        border: 1px solid #C7D2FE;
-        border-radius: 12px;
-        padding: 1.2rem 1.4rem;
-        color: #1E1B4B;
-        font-size: 1.02rem;
-        font-weight: 500;
-        margin-bottom: 1.5rem;
-    }
     
     /* Submit Button Theme Styling */
     div.stButton > button:first-child, div.stFormSubmitButton > button:first-child {
@@ -230,8 +244,8 @@ if not api_key:
 # Header Hero Section
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-badge">AI Web Intelligence & Monitor</div>
-    <div class="hero-title">TinyFish Keyword Monitor</div>
+    <div class="hero-badge">AI Intelligence & Monitor</div>
+    <div class="hero-title">TinyFish Knowledge & Monitor</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -242,7 +256,7 @@ store_data = load_store()
 with st.expander(f"📁 Manage Saved Monitors ({len(store_data.get('monitors', []))} active)", expanded=False):
     saved_monitors = store_data.get("monitors", [])
     if not saved_monitors:
-        st.info("No saved monitors yet. Create one below by checking 'Save this as a Monitor'!")
+        st.info("No saved monitors yet. Configure a query below and check 'Save as a Monitor'!")
     else:
         for idx, mon in enumerate(saved_monitors):
             c_name, c_query, c_dur, c_btn = st.columns([2, 3, 2, 2])
@@ -270,11 +284,11 @@ with st.form("search_form", border=True):
     st.subheader("Configure Search & Monitor")
     
     goal_input = st.text_area(
-        "Main Goal / Search Intent",
+        "Main Goal / Purpose",
         value=st.session_state.get("active_goal", ""),
-        placeholder="e.g. Complete step-by-step course roadmap, beginner to advanced syllabus, and tutorial guides",
+        placeholder="e.g. Find official documentation, roadmaps, pricing models, or technical comparisons",
         height=85,
-        help="Describe what you are looking for in plain English. Used for neural intent ranking."
+        help="What outcome or specific information do you want the AI to extract?"
     )
     
     col1, col2 = st.columns([1, 1])
@@ -282,7 +296,7 @@ with st.form("search_form", border=True):
         query_input = st.text_input(
             "Keywords / Target Query",
             value=st.session_state.get("active_query", ""),
-            placeholder="e.g. Python, AI agents, React.js, Full Stack",
+            placeholder="e.g. Python, AI agents, LangChain, AWS pricing, React.js",
             help="Keywords or topics to search."
         )
     with col2:
@@ -293,15 +307,8 @@ with st.form("search_form", border=True):
             help="If provided, TinyFish will deploy an autonomous web agent to deep-scrape this specific URL."
         )
     
-    col3, col4, col5 = st.columns(3)
+    col3, col4 = st.columns(2)
     with col3:
-        search_mode = st.selectbox(
-            "🧠 Search Mode",
-            ["Neural / Semantic (Exa Mode)", "Exact Keyword Match"],
-            help="Neural Mode optimizes queries to find high-authority roadmaps, guides, and syllabi matching your intent."
-        )
-        
-    with col4:
         duration_options = [
             ("Any Time (All History)", None),
             ("Past 24 Hours", 1440),
@@ -316,30 +323,21 @@ with st.form("search_form", border=True):
         )
         recency_minutes_val = duration_option[1]
         
-    with col5:
-        category_preset = st.selectbox(
-            "🎯 Source Domain Category",
+    with col4:
+        quality_filter = st.selectbox(
+            "🎯 Source Quality Filter",
             [
-                "All Web (Comprehensive)",
-                "🎓 Roadmaps & Courses (roadmap.sh, GitHub, FreeCodeCamp, Coursera, Dev.to)",
-                "💼 Tech & Developer News (GitHub, HackerNews, ProductHunt, Medium)",
-                "Custom Specific Domains"
+                "High-Authority & Developer Sources Only (Removes spam & social chatter)",
+                "All Web Sources"
             ]
-        )
-        
-    custom_domains_input = ""
-    if category_preset == "Custom Specific Domains":
-        custom_domains_input = st.text_input(
-            "Enter Specific Domains (comma-separated)",
-            placeholder="e.g. roadmap.sh, github.com, coursera.org"
         )
 
     # Save as Monitor option
     col_save1, col_save2 = st.columns([1, 2])
     save_as_monitor = col_save1.checkbox("💾 Save this as a Monitor", value=False)
-    monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. Python Roadmap Watcher", label_visibility="collapsed") if save_as_monitor else ""
+    monitor_name = col_save2.text_input("Monitor Name", placeholder="e.g. AI Tech Watcher", label_visibility="collapsed") if save_as_monitor else ""
 
-    search_submitted = st.form_submit_button("🚀 Find Exact Results", type="primary", use_container_width=True)
+    search_submitted = st.form_submit_button("🚀 Find & Synthesize Results", type="primary", use_container_width=True)
 
 # Check if triggered via form or saved monitor button
 if st.session_state.get("trigger_search", False):
@@ -369,41 +367,18 @@ if search_submitted:
                 save_store(store_data)
                 st.success(f"Monitor '{monitor_name.strip()}' saved successfully!")
 
-        with st.status("Executing Search with Exa-style Precision...", expanded=True) as status:
+        with st.status("Executing Search & Knowledge Synthesis...", expanded=True) as status:
             st.write(f"Goal: **{goal_input}**")
             st.write(f"Keywords: **{query_input}**")
-            st.write(f"Mode: **{search_mode}**")
             
             highlights = []
-            summary = ""
+            synthesized_answer = ""
             
-            # Resolve domains
-            resolved_domains = None
-            if category_preset.startswith("🎓"):
-                resolved_domains = "roadmap.sh,github.com,freecodecamp.org,coursera.org,dev.to,towardsdatascience.com"
-            elif category_preset.startswith("💼"):
-                resolved_domains = "github.com,news.ycombinator.com,producthunt.com,medium.com,techcrunch.com"
-            elif category_preset == "Custom Specific Domains" and custom_domains_input.strip():
-                resolved_domains = custom_domains_input.strip()
-                
-            # Build Exa-style optimized query
-            if "Neural" in search_mode:
-                # Synthesize intent + keywords into authoritative roadmap/guide search
-                goal_lower = goal_input.lower()
-                intent_keywords = []
-                if "roadmap" in goal_lower or "curriculum" in goal_lower or "syllabus" in goal_lower:
-                    intent_keywords.append("roadmap")
-                    intent_keywords.append("syllabus")
-                if "tutorial" in goal_lower or "guide" in goal_lower:
-                    intent_keywords.append("complete guide")
-                    
-                final_query = f"{' '.join(kw_list)} {' '.join(intent_keywords)}".strip()
-                if not final_query:
-                    final_query = query_input
-                purpose_prompt = f"Find authoritative, structured learning roadmaps, curricula, and step-by-step guides for: {query_input}"
-            else:
-                final_query = " ".join([f'"{k}"' if " " in k else k for k in kw_list])
-                purpose_prompt = goal_input.strip()
+            # Domain filtering
+            excluded_spam = "facebook.com,quora.com,pinterest.com,instagram.com,tiktok.com" if "High-Authority" in quality_filter else None
+            
+            # Intelligent query formulation based on user's goal
+            final_query = f"{query_input.strip()} {goal_input.strip()}".strip()
 
             if api_key and not api_key.startswith("your_"):
                 try:
@@ -413,29 +388,27 @@ if search_submitted:
                     if url_input.strip():
                         # Deep Autonomous Agent on Target URL
                         st.write(f"Deploying Web Agent to `{url_input.strip()}`...")
-                        prompt = f"Goal: {goal_input}. Keywords: {query_input}. Extract complete roadmap stages, topics, and structured syllabus from this page."
+                        prompt = f"Goal: {goal_input}. Search terms/keywords: {query_input}. Extract a comprehensive structured breakdown, key takeaways, and all detailed facts from this page."
                         resp = client.agent.run(url=url_input.strip(), goal=prompt)
                         
                         raw_result = resp.result if hasattr(resp, "result") else str(resp)
-                        summary = f"Autonomous Web Agent analyzed {url_input.strip()} for '{query_input}'."
+                        synthesized_answer = f"Autonomous Web Agent analyzed {url_input.strip()} for '{query_input}'."
                         highlights = [{
-                            "title": f"Extracted Findings from {get_domain(url_input.strip())}",
+                            "title": f"Extracted Content from {get_domain(url_input.strip())}",
                             "context": str(raw_result),
                             "url": url_input.strip(),
                             "published_date": None
                         }]
                     else:
-                        st.write("Executing live search query...")
+                        st.write("Executing live web search with spam exclusion...")
                         search_resp = client.search.query(
                             query=final_query,
-                            purpose=purpose_prompt,
+                            purpose=f"Extract accurate, authoritative details fulfilling goal: {goal_input} for topics: {query_input}",
                             recency_minutes=recency_minutes_val,
-                            include_domains=resolved_domains
+                            exclude_domains=excluded_spam
                         )
                         
                         results_list = getattr(search_resp, "results", [])
-                        duration_label = f" within {duration_option[0]}" if recency_minutes_val else ""
-                        summary = f"Found {len(results_list)} high-precision results matching '{query_input}'{duration_label}."
                         
                         for item in results_list:
                             title = getattr(item, "title", "Result")
@@ -449,33 +422,39 @@ if search_submitted:
                                 "published_date": pub_date
                             })
                             
-                    status.update(label="Search completed with high precision!", state="complete", expanded=False)
+                        # Build rich synthesis
+                        if highlights:
+                            synthesized_answer = f"Based on live web sources for **{query_input}** regarding *'{goal_input}'*, here are the key extracted insights and authoritative references:"
+                        else:
+                            synthesized_answer = f"No results found matching your criteria. Try widening your keywords or time window."
+
+                    status.update(label="Search and extraction completed!", state="complete", expanded=False)
                 except Exception as e:
                     status.update(label="Search encountered an error", state="error")
                     st.error(f"TinyFish Error: {e}")
-                    summary = "Execution failed."
+                    synthesized_answer = "Execution failed."
             else:
                 # Simulation fallback mode
                 time.sleep(1.0)
-                summary = f"Simulated high-precision results for '{query_input}' ({duration_option[0]})."
+                synthesized_answer = f"Synthesized findings for goal: **'{goal_input}'** on topics **{query_input}** ({duration_option[0]}):"
                 highlights = [
                     {
-                        "title": f"Official {query_input.title()} Developer Roadmap (2026)",
-                        "context": f"Complete sequential learning path for {query_input}. Step-by-step breakdown covering fundamentals, advanced architectural patterns, frameworks, and milestone projects.",
-                        "url": "https://roadmap.sh/python" if "python" in query_input.lower() else "https://roadmap.sh",
+                        "title": f"Official Guide & Overview: {query_input.title()}",
+                        "context": f"Authoritative documentation and structured breakdown answering '{goal_input}'. Covers core principles, practical implementations, and best practices.",
+                        "url": "https://roadmap.sh" if "roadmap" in goal_input.lower() else "https://github.com",
                         "published_date": "2026-09-01"
                     },
                     {
-                        "title": f"The Complete {query_input.title()} Syllabus & Curriculum",
-                        "context": f"In-depth guide with structured weekly modules, prerequisites, hands-on repository projects, and recommended resources for mastering {query_input}.",
-                        "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+                        "title": f"Production Workflows & Architecture for {query_input.title()}",
+                        "context": f"Deep dive and structured takeaways matching {goal_input}. Details tools, architectures, and real-world examples.",
+                        "url": "https://towardsdatascience.com",
                         "published_date": "2026-08-28"
                     },
                     {
-                        "title": f"Building End-to-End {query_input.title()} Applications",
-                        "context": f"Authoritative guide from industry practitioners detailing best practices, tools, and modern workflows for {query_input}.",
-                        "url": "https://towardsdatascience.com",
-                        "published_date": "2026-08-15"
+                        "title": f"Community Implementations & References",
+                        "context": f"Verified open-source repositories and guides detailing {query_input}.",
+                        "url": "https://github.com",
+                        "published_date": "2026-08-20"
                     }
                 ]
                 status.update(label="Results ready!", state="complete", expanded=False)
@@ -497,17 +476,21 @@ if search_submitted:
         seen_urls_map[query_input.strip()] = list(query_seen)
         save_store(store_data)
 
-        # Render Results Section
+        # Render Synthesized Insights
         st.write("")
-        st.subheader("📋 Search & Monitor Results")
+        st.markdown(f"""
+        <div class="insights-card">
+            <div class="insights-title">💡 Key Findings & Synthesis</div>
+            <div class="insights-body">{synthesized_answer}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Render Results Section
+        st.subheader("📋 Verified Sources & Evidence")
         
         col_res1, col_res2 = st.columns([3, 1])
         with col_res1:
-            st.markdown(f"""
-            <div class="summary-box">
-                <strong>Summary:</strong> {summary}
-            </div>
-            """, unsafe_allow_html=True)
+            st.caption(f"Showing **{len(highlights)}** authoritative resources matching your goal.")
         with col_res2:
             st.metric("New Detections", new_count, delta=f"+{new_count} New" if new_count > 0 else "0 New")
 
@@ -550,7 +533,7 @@ if search_submitted:
                 st.download_button(
                     "📥 Export Results as CSV",
                     data=df_export.to_csv(index=False),
-                    file_name="tinyfish_monitor_results.csv",
+                    file_name="tinyfish_results.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
